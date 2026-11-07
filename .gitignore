@@ -12,6 +12,7 @@ dist/
 ACCESS.local.*
 CALL-PREP.md
 CRM-PROMPT.md
+SUBMISSION.local.md
 
 # Local tool state
 .claude/
