@@ -89,6 +89,7 @@ try {
       password: randomBytes(16).toString('hex'),
     }),
   );
+  await refused('Аноним', 'войти анонимно, без учётной записи', publicClient().auth.signInAnonymously());
   await refused('Аноним', 'создать объект', anon.from('objects').insert({ name: 'x', address: 'x' }));
   await refused(
     'Аноним',
@@ -137,6 +138,18 @@ try {
   record('Исполнитель', 'после всех попыток задача не изменилась', untouched.status === 'new' && untouched.title.startsWith('[check]') && untouched.assignee_id === e1.id && untouched.deleted_at === null);
 
   await refused('Исполнитель', 'создать задачу', e1.client.from('tasks').insert({ title: 'x', object_id: objA, assignee_id: e1.id }));
+  // Ответ не должен зависеть от того, существует ли объект и кто указан исполнителем.
+  const refusals = await Promise.all([
+    e1.client.from('tasks').insert({ title: 'x', object_id: objA, assignee_id: e1.id }),
+    e1.client.from('tasks').insert({ title: 'x', object_id: objA, assignee_id: m1.id }),
+    e1.client.from('tasks').insert({ title: 'x', object_id: '00000000-0000-0000-0000-000000000000', assignee_id: e1.id }),
+  ]);
+  record(
+    'Исполнитель',
+    'отказ при создании задачи ничего не раскрывает о чужих данных',
+    refusals.every((r) => r.error?.code === '42501' && r.error.message === refusals[0].error?.message),
+    refusals.map((r) => r.error?.code).join(', '),
+  );
   await refused('Исполнитель', 'создать объект', e1.client.from('objects').insert({ name: 'x', address: 'x' }));
   await noRows('Исполнитель', 'изменить объект', e1.client.from('objects').update({ name: 'взлом' }).eq('id', objA).select());
   await refused('Исполнитель', 'удалить задачу запросом DELETE', e1.client.from('tasks').delete().eq('id', taskA));
