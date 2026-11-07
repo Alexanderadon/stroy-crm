@@ -1,0 +1,20 @@
+# Dependencies and build output
+node_modules/
+dist/
+*.log
+
+# Local secrets: only .env.example is tracked
+.env
+.env.*
+!.env.example
+
+# Local working notes and test credentials
+ACCESS.local.md
+CALL-PREP.md
+CRM-PROMPT.md
+
+# Local tool state
+.claude/
+.vercel/
+supabase/.temp/
+supabase/.branches/
