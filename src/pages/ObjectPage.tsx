@@ -6,7 +6,7 @@ import { useProfile } from '../auth/AuthProvider';
 import { DataState } from '../components/DataState';
 import { ObjectFormModal } from '../components/ObjectFormModal';
 import { TaskFormModal } from '../components/TaskFormModal';
-import { TaskTable } from '../components/TaskTable';
+import { TaskTable, type TaskRow } from '../components/TaskTable';
 import { supabase } from '../lib/supabase';
 import { useAppMutation } from '../lib/useAppMutation';
 
@@ -52,8 +52,19 @@ export function ObjectPage() {
     () => navigate('/objects'),
   );
 
+  const removeTask = useAppMutation<string>(async (taskId) => {
+    const { error } = await supabase.rpc('delete_task', { p_task_id: taskId });
+    if (error) throw error;
+  });
+
   const confirmRemove = () => {
     if (window.confirm('Удалить объект? Он исчезнет из списка.')) remove.mutate();
+  };
+
+  const confirmRemoveTask = (task: TaskRow) => {
+    if (window.confirm(`Удалить задачу «${task.title}»? Она исчезнет из списков, история сохранится.`)) {
+      removeTask.mutate(task.id);
+    }
   };
 
   return (
@@ -68,10 +79,10 @@ export function ObjectPage() {
             {isManager && (
               <Group>
                 <Button variant="default" onClick={() => setEditing(true)}>
-                  Изменить
+                  Изменить объект
                 </Button>
-                <Button variant="default" color="red" loading={remove.isPending} onClick={confirmRemove}>
-                  Удалить
+                <Button variant="light" color="red" loading={remove.isPending} onClick={confirmRemove}>
+                  Удалить объект
                 </Button>
               </Group>
             )}
@@ -83,7 +94,15 @@ export function ObjectPage() {
           </Group>
 
           <DataState query={tasks}>
-            {(rows) => <TaskTable tasks={rows} showAssignee={isManager} emptyText="Задач пока нет." />}
+            {(rows) => (
+              <TaskTable
+                tasks={rows}
+                showAssignee={isManager}
+                emptyText="Задач пока нет."
+                onDelete={isManager ? confirmRemoveTask : undefined}
+                deleteDisabled={removeTask.isPending}
+              />
+            )}
           </DataState>
 
           {editing && <ObjectFormModal object={data} onClose={() => setEditing(false)} />}

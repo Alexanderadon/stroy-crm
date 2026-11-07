@@ -1,4 +1,4 @@
-import { Anchor, Table, Text } from '@mantine/core';
+import { Anchor, Button, Table, Text } from '@mantine/core';
 import { Link } from 'react-router';
 import { formatDate, type TaskStatus } from '../lib/tasks';
 import { StatusBadge } from './StatusBadge';
@@ -17,9 +17,12 @@ type Props = {
   showAssignee?: boolean;
   showObject?: boolean;
   emptyText: string;
+  /** Передаётся только постановщику: у исполнителя кнопки удаления нет. */
+  onDelete?: (task: TaskRow) => void;
+  deleteDisabled?: boolean;
 };
 
-export function TaskTable({ tasks, showAssignee, showObject, emptyText }: Props) {
+export function TaskTable({ tasks, showAssignee, showObject, emptyText, onDelete, deleteDisabled }: Props) {
   if (tasks.length === 0) return <Text c="dimmed">{emptyText}</Text>;
 
   return (
@@ -32,6 +35,7 @@ export function TaskTable({ tasks, showAssignee, showObject, emptyText }: Props)
             {showAssignee && <Table.Th>Исполнитель</Table.Th>}
             <Table.Th>Статус</Table.Th>
             <Table.Th>Создана</Table.Th>
+            {onDelete && <Table.Th />}
           </Table.Tr>
         </Table.Thead>
         <Table.Tbody>
@@ -48,6 +52,20 @@ export function TaskTable({ tasks, showAssignee, showObject, emptyText }: Props)
                 <StatusBadge status={task.status} />
               </Table.Td>
               <Table.Td>{formatDate(task.created_at)}</Table.Td>
+              {onDelete && (
+                <Table.Td ta="right">
+                  <Button
+                    variant="subtle"
+                    color="red"
+                    size="compact-sm"
+                    disabled={deleteDisabled}
+                    aria-label={`Удалить задачу «${task.title}»`}
+                    onClick={() => onDelete(task)}
+                  >
+                    Удалить
+                  </Button>
+                </Table.Td>
+              )}
             </Table.Tr>
           ))}
         </Table.Tbody>

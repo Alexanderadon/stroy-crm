@@ -73,11 +73,11 @@ export function TaskPage() {
               <Group>
                 {data.status !== 'accepted' && (
                   <Button variant="default" onClick={() => setEditing(true)}>
-                    Изменить
+                    Изменить задачу
                   </Button>
                 )}
-                <Button variant="default" color="red" loading={remove.isPending} onClick={confirmRemove}>
-                  Удалить
+                <Button variant="light" color="red" loading={remove.isPending} onClick={confirmRemove}>
+                  Удалить задачу
                 </Button>
               </Group>
             )}
