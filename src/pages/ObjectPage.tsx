@@ -1,12 +1,14 @@
 import { Button, Group, Stack, Text, Title } from '@mantine/core';
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { useProfile } from '../auth/AuthProvider';
 import { DataState } from '../components/DataState';
+import { ListPagination } from '../components/ListPagination';
 import { ObjectFormModal } from '../components/ObjectFormModal';
 import { TaskFormModal } from '../components/TaskFormModal';
 import { TaskTable, type TaskRow } from '../components/TaskTable';
+import { fetchPage } from '../lib/pagination';
 import { supabase } from '../lib/supabase';
 import { useAppMutation } from '../lib/useAppMutation';
 
@@ -17,13 +19,14 @@ export function ObjectPage() {
   const isManager = profile.role === 'manager';
   const [editing, setEditing] = useState(false);
   const [addingTask, setAddingTask] = useState(false);
+  const [page, setPage] = useState(1);
 
   const object = useQuery({
     queryKey: ['object', id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('objects')
-        .select('id, name, address')
+        .select('id, name, address, updated_at')
         .eq('id', id)
         .maybeSingle();
       if (error) throw error;
@@ -32,16 +35,20 @@ export function ObjectPage() {
   });
 
   const tasks = useQuery({
-    queryKey: ['tasks', 'object', id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('tasks')
-        .select('id, title, status, created_at, assignee:profiles!tasks_assignee_id_fkey(full_name)')
-        .eq('object_id', id)
-        .order('created_at');
-      if (error) throw error;
-      return data;
-    },
+    queryKey: ['tasks', 'object', id, page],
+    placeholderData: keepPreviousData,
+    queryFn: () =>
+      fetchPage(page, (from, to) =>
+        supabase
+          .from('tasks')
+          .select('id, title, status, created_at, assignee:profiles!tasks_assignee_id_fkey(full_name)', {
+            count: 'exact',
+          })
+          .eq('object_id', id)
+          .order('created_at')
+          .order('id')
+          .range(from, to),
+      ),
   });
 
   const remove = useAppMutation(
@@ -94,14 +101,17 @@ export function ObjectPage() {
           </Group>
 
           <DataState query={tasks}>
-            {(rows) => (
-              <TaskTable
-                tasks={rows}
-                showAssignee={isManager}
-                emptyText="Задач пока нет."
-                onDelete={isManager ? confirmRemoveTask : undefined}
-                deleteDisabled={removeTask.isPending}
-              />
+            {({ rows, total }) => (
+              <Stack>
+                <TaskTable
+                  tasks={rows}
+                  showAssignee={isManager}
+                  emptyText="Задач пока нет."
+                  onDelete={isManager ? confirmRemoveTask : undefined}
+                  deleteDisabled={removeTask.isPending}
+                />
+                <ListPagination page={page} total={total} rowsOnPage={rows.length} onChange={setPage} />
+              </Stack>
             )}
           </DataState>
 

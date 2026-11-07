@@ -2,7 +2,7 @@ import { Button, Group, Modal, Select, Stack, Textarea, TextInput } from '@manti
 import { useQuery } from '@tanstack/react-query';
 import { useState, type FormEvent } from 'react';
 import { supabase } from '../lib/supabase';
-import { useAppMutation } from '../lib/useAppMutation';
+import { CONFLICT_MESSAGE, useAppMutation } from '../lib/useAppMutation';
 
 type Props = {
   task?: {
@@ -11,6 +11,7 @@ type Props = {
     description: string;
     object_id: string;
     assignee_id: string;
+    updated_at: string;
   };
   defaultObjectId?: string;
   onClose: () => void;
@@ -21,6 +22,8 @@ export function TaskFormModal({ task, defaultObjectId, onClose }: Props) {
   const [description, setDescription] = useState(task?.description ?? '');
   const [objectId, setObjectId] = useState<string | null>(task?.object_id ?? defaultObjectId ?? null);
   const [assigneeId, setAssigneeId] = useState<string | null>(task?.assignee_id ?? null);
+  // Версия на момент открытия формы: данные страницы могут обновиться, пока окно открыто.
+  const [openedVersion] = useState(task?.updated_at);
 
   const objects = useQuery({
     queryKey: ['objects', 'options'],
@@ -51,10 +54,19 @@ export function TaskFormModal({ task, defaultObjectId, onClose }: Props) {
       object_id: objectId!,
       assignee_id: assigneeId!,
     };
-    const { error } = task
-      ? await supabase.from('tasks').update(values).eq('id', task.id)
-      : await supabase.from('tasks').insert(values);
-    if (error) throw error;
+    if (task) {
+      const { data, error } = await supabase
+        .from('tasks')
+        .update(values)
+        .eq('id', task.id)
+        .eq('updated_at', openedVersion!)
+        .select('id');
+      if (error) throw error;
+      if (data.length === 0) throw new Error(CONFLICT_MESSAGE);
+    } else {
+      const { error } = await supabase.from('tasks').insert(values);
+      if (error) throw error;
+    }
   }, onClose);
 
   const submit = (event: FormEvent) => {
@@ -85,6 +97,7 @@ export function TaskFormModal({ task, defaultObjectId, onClose }: Props) {
             label="Объект"
             required
             searchable
+            limit={50}
             data={(objects.data ?? []).map((o) => ({ value: o.id, label: o.name }))}
             value={objectId}
             onChange={setObjectId}
@@ -93,6 +106,7 @@ export function TaskFormModal({ task, defaultObjectId, onClose }: Props) {
             label="Исполнитель"
             required
             searchable
+            limit={50}
             data={(executors.data ?? []).map((e) => ({ value: e.id, label: e.full_name }))}
             value={assigneeId}
             onChange={setAssigneeId}

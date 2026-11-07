@@ -36,7 +36,7 @@ export function TaskPage() {
       const { data, error } = await supabase
         .from('tasks')
         .select(
-          `id, title, description, status, created_at, object_id, assignee_id,
+          `id, title, description, status, created_at, updated_at, object_id, assignee_id,
            object:objects(id, name, address),
            assignee:profiles!tasks_assignee_id_fkey(full_name),
            author:profiles!tasks_author_id_fkey(full_name)`,

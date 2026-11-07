@@ -3,6 +3,9 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 const CYRILLIC = /[а-яё]/i;
 
+export const CONFLICT_MESSAGE =
+  'Запись уже изменил или удалил другой пользователь. Ваша правка не сохранена: закройте окно и откройте его заново, чтобы увидеть новые данные.';
+
 /** Сообщения функций базы уже на русском, остальные ошибки переводим в понятный текст. */
 export function errorMessage(error: unknown): string {
   const { code, message } = (error ?? {}) as { code?: string; message?: string };

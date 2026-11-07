@@ -1,23 +1,34 @@
 import { Button, Group, Modal, Stack, TextInput } from '@mantine/core';
 import { useState, type FormEvent } from 'react';
 import { supabase } from '../lib/supabase';
-import { useAppMutation } from '../lib/useAppMutation';
+import { CONFLICT_MESSAGE, useAppMutation } from '../lib/useAppMutation';
 
 type Props = {
-  object?: { id: string; name: string; address: string };
+  object?: { id: string; name: string; address: string; updated_at: string };
   onClose: () => void;
 };
 
 export function ObjectFormModal({ object, onClose }: Props) {
   const [name, setName] = useState(object?.name ?? '');
   const [address, setAddress] = useState(object?.address ?? '');
+  // Версия на момент открытия формы: данные страницы могут обновиться, пока окно открыто.
+  const [openedVersion] = useState(object?.updated_at);
 
   const save = useAppMutation(async () => {
     const values = { name: name.trim(), address: address.trim() };
-    const { error } = object
-      ? await supabase.from('objects').update(values).eq('id', object.id)
-      : await supabase.from('objects').insert(values);
-    if (error) throw error;
+    if (object) {
+      const { data, error } = await supabase
+        .from('objects')
+        .update(values)
+        .eq('id', object.id)
+        .eq('updated_at', openedVersion!)
+        .select('id');
+      if (error) throw error;
+      if (data.length === 0) throw new Error(CONFLICT_MESSAGE);
+    } else {
+      const { error } = await supabase.from('objects').insert(values);
+      if (error) throw error;
+    }
   }, onClose);
 
   const submit = (event: FormEvent) => {

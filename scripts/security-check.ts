@@ -106,6 +106,8 @@ try {
       (ownTasks.data ?? []).length > 0 &&
       (ownTasks.data ?? []).every((t) => t.assignee_id === e1.id),
   );
+  const counted = await e1.client.from('tasks').select('id', { count: 'exact', head: true });
+  record('Исполнитель', 'счётчик для постраничного вывода не учитывает чужие задачи', counted.count === ownTasks.data?.length, `счётчик: ${counted.count}`);
   await noRows('Исполнитель', 'прочитать чужую задачу', e1.client.from('tasks').select('*').eq('id', taskB));
   await noRows('Исполнитель', 'прочитать историю чужой задачи', e1.client.from('task_history').select('*').eq('task_id', taskB));
   await noRows('Исполнитель', 'прочитать объект без своих задач', e1.client.from('objects').select('*').eq('id', objB));
@@ -219,8 +221,24 @@ try {
   await noRows('Исполнитель', 'прежний исполнитель потерял доступ', e1.client.from('tasks').select('*').eq('id', taskC));
   await allowed('Постановщик', 'вернуть задачу первому исполнителю', m1.client.from('tasks').update({ assignee_id: e1.id }).eq('id', taskC));
 
+  console.log('\n--- Одновременная правка ---');
+  await refused('Постановщик', 'записать версию задачи напрямую', m1.client.from('tasks').update({ updated_at: '2000-01-01' }).eq('id', taskC));
+  await refused('Постановщик', 'записать версию объекта напрямую', m1.client.from('objects').update({ updated_at: '2000-01-01' }).eq('id', objB));
+  const opened = await readTask(taskC);
+  await allowed('Постановщик', 'первая правка задачи проходит', m1.client.from('tasks').update({ description: 'Правка первого' }).eq('id', taskC).eq('updated_at', opened.updated_at));
+  await noRows('Второй пост.', 'правка по устаревшей версии не проходит', m2.client.from('tasks').update({ description: 'Правка второго' }).eq('id', taskC).eq('updated_at', opened.updated_at).select());
+  const edited = await readTask(taskC);
+  record('Постановщик', 'первая правка не затёрта', edited.description === 'Правка первого' && edited.updated_at !== opened.updated_at, edited.description);
+  await allowed('Второй пост.', 'правка по новой версии проходит', m2.client.from('tasks').update({ description: 'Правка второго' }).eq('id', taskC).eq('updated_at', edited.updated_at));
+  const objectRead = await m1.client.from('objects').select('updated_at').eq('id', objB).single();
+  await allowed('Постановщик', 'первая правка объекта проходит', m1.client.from('objects').update({ address: 'Новый адрес' }).eq('id', objB).eq('updated_at', objectRead.data?.updated_at));
+  await noRows('Второй пост.', 'правка объекта по устаревшей версии не проходит', m2.client.from('objects').update({ address: 'Другой адрес' }).eq('id', objB).eq('updated_at', objectRead.data?.updated_at).select());
+
   console.log('\n--- Полный цикл ---');
+  const beforeMove = await readTask(taskC);
   await allowed('Исполнитель', 'new -> in_progress', changeStatus(e1, taskC, 'in_progress'));
+  const afterMove = await readTask(taskC);
+  record('Исполнитель', 'смена статуса обновляет версию задачи', afterMove.updated_at !== beforeMove.updated_at);
   await allowed('Исполнитель', 'in_progress -> review', changeStatus(e1, taskC, 'review'));
   await refused('Постановщик', 'вернуть без комментария', changeStatus(m1, taskC, 'rework'));
   await refused('Постановщик', 'вернуть с комментарием из пробелов', changeStatus(m1, taskC, 'rework', '     '));

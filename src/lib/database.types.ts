@@ -46,6 +46,7 @@ export type Database = {
           deleted_at: string | null
           id: string
           name: string
+          updated_at: string
         }
         Insert: {
           address: string
@@ -53,6 +54,7 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           name: string
+          updated_at?: string
         }
         Update: {
           address?: string
@@ -60,6 +62,7 @@ export type Database = {
           deleted_at?: string | null
           id?: string
           name?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -143,6 +146,7 @@ export type Database = {
           object_id: string
           status: Database["public"]["Enums"]["task_status"]
           title: string
+          updated_at: string
         }
         Insert: {
           assignee_id: string
@@ -154,6 +158,7 @@ export type Database = {
           object_id: string
           status?: Database["public"]["Enums"]["task_status"]
           title: string
+          updated_at?: string
         }
         Update: {
           assignee_id?: string
@@ -165,6 +170,7 @@ export type Database = {
           object_id?: string
           status?: Database["public"]["Enums"]["task_status"]
           title?: string
+          updated_at?: string
         }
         Relationships: [
           {
@@ -211,6 +217,7 @@ export type Database = {
           object_id: string
           status: Database["public"]["Enums"]["task_status"]
           title: string
+          updated_at: string
         }
         SetofOptions: {
           from: "*"
