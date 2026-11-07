@@ -1,0 +1,7 @@
+# Only settings this project deliberately changes are declared here.
+# Everything else stays at the Supabase project defaults.
+project_id = "stroy-crm"
+
+[auth]
+# Open signup is forbidden by the requirements: users are created by an administrator.
+enable_signup = false
