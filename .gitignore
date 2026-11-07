@@ -9,7 +9,7 @@ dist/
 !.env.example
 
 # Local working notes and test credentials
-ACCESS.local.md
+ACCESS.local.*
 CALL-PREP.md
 CRM-PROMPT.md
 
