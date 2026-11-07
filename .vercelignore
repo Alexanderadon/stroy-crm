@@ -1,0 +1,9 @@
+# Never upload local secrets or working notes to Vercel
+.env
+.env.*
+ACCESS.local.*
+CALL-PREP.md
+CRM-PROMPT.md
+.claude
+scripts
+supabase
